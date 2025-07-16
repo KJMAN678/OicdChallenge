@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}ホーム - Django OIDC Challenge{% endblock %}
+
+{% block content %}
+<h2>Django OIDC認証システム</h2>
+
+{% if user.is_authenticated %}
+    <div class="user-info">
+        <h3>ユーザー情報</h3>
+        <p><strong>ユーザー名:</strong> {{ user.username }}</p>
+        <p><strong>メールアドレス:</strong> {{ user.email }}</p>
+        <p><strong>姓名:</strong> {{ user.get_full_name|default:"未設定" }}</p>
+        <p><strong>最終ログイン:</strong> {{ user.last_login|default:"初回ログイン" }}</p>
+        <p><strong>アカウント作成日:</strong> {{ user.date_joined }}</p>
+    </div>
+
+    <div class="alert alert-info">
+        <strong>認証成功！</strong> OIDC認証システムを通じてログインしています。
+    </div>
+
+    <h3>利用可能な機能</h3>
+    <ul>
+        <li>KeyCloak経由でのGoogle認証</li>
+        <li>AWS OIDC認証（設定済みの場合）</li>
+        <li>ユーザープロファイル管理</li>
+        <li>セッション管理</li>
+    </ul>
+
+{% else %}
+    <div class="alert alert-info">
+        <strong>認証が必要です。</strong> 以下のプロバイダーからログインしてください。
+    </div>
+
+    <h3>ログインオプション</h3>
+    <p>以下のいずれかの方法でログインできます：</p>
+
+    <div class="provider-buttons">
+        {% load socialaccount %}
+        
+        {% get_providers as socialaccount_providers %}
+        {% for provider in socialaccount_providers %}
+            {% if provider.id == "openid_connect" %}
+                {% for app in provider.get_app_configs %}
+                    {% if app.provider_id == "keycloak" %}
+                        <a href="{% provider_login_url provider.id openid_connect=app.provider_id %}" class="provider-btn keycloak">
+                            <strong>🔐 KeyCloak経由でログイン</strong>
+                            <small style="margin-left: 10px; color: #666;">（Google認証を含む）</small>
+                        </a>
+                    {% elif app.provider_id == "aws-oidc" %}
+                        <a href="{% provider_login_url provider.id openid_connect=app.provider_id %}" class="provider-btn aws">
+                            <strong>☁️ AWS OIDC でログイン</strong>
+                            <small style="margin-left: 10px; color: #666;">（AWS IAM Identity Center）</small>
+                        </a>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+        {% endfor %}
+    </div>
+
+    <h3>認証システムについて</h3>
+    <ul>
+        <li><strong>KeyCloak:</strong> Identity Brokerとして機能し、Google OAuth2認証を仲介</li>
+        <li><strong>AWS OIDC:</strong> AWS IAM Identity Centerとの直接統合</li>
+        <li><strong>django-allauth:</strong> Django用の包括的な認証ライブラリ</li>
+        <li><strong>python-keycloak:</strong> KeyCloak管理API操作</li>
+    </ul>
+{% endif %}
+
+<h3>技術スタック</h3>
+<ul>
+    <li>Django 5.2.4</li>
+    <li>django-allauth 0.63.6</li>
+    <li>python-keycloak 3.17.0</li>
+    <li>KeyCloak (Docker)</li>
+    <li>PostgreSQL</li>
+</ul>
+{% endblock %}

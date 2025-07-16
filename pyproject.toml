@@ -7,6 +7,8 @@ requires-python = ">=3.12"
 dependencies = [
     "Django==5.2.4",
     "psycopg2-binary==2.9.10",
+    "django-allauth==0.63.6",
+    "python-keycloak==3.17.0",
 ]
 
 [tool.uv]
