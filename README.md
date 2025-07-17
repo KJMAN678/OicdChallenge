@@ -20,6 +20,23 @@ export POSTGRES_DB=hogehoge
 export POSTGRES_USER=hogehoge
 export POSTGRES_PASSWORD=hogehoge
 
+# OIDC認証用環境変数
+export KEYCLOAK_SERVER_URL=http://localhost:8080
+export KEYCLOAK_REALM=myrealm
+export KEYCLOAK_CLIENT_ID=django-client
+export KEYCLOAK_CLIENT_SECRET=your-keycloak-client-secret
+export KEYCLOAK_ADMIN_USERNAME=admin
+export KEYCLOAK_ADMIN_PASSWORD=admin
+
+# Google OAuth2設定（KeyCloak Identity Provider用）
+export GOOGLE_OAUTH2_CLIENT_ID=your-google-client-id
+export GOOGLE_OAUTH2_CLIENT_SECRET=your-google-client-secret
+
+# AWS OIDC設定（オプション）
+export AWS_OIDC_ISSUER_URL=https://your-aws-oidc-issuer-url
+export AWS_OIDC_CLIENT_ID=your-aws-oidc-client-id
+export AWS_OIDC_CLIENT_SECRET=your-aws-oidc-client-secret
+
 # 環境変数を読み込む
 $ direnv allow
 ```
@@ -51,6 +68,134 @@ $ docker compose -f run --rm backend uv run pytest
 
 ```sh
 $ http://localhost:8000/ がバックエンドのURL
+```
+
+## OIDC認証設定
+
+### 必要な環境変数
+
+このプロジェクトでは、KeyCloak + django-allauth を使用したOIDC認証を実装しています。以下の環境変数が必要です：
+
+#### 基本設定
+| 環境変数名 | 説明 | デフォルト値 | 必須 |
+|-----------|------|-------------|------|
+| `DJANGO_SECRET_KEY` | Django秘密鍵 | - | ✅ |
+| `POSTGRES_DB` | PostgreSQLデータベース名 | - | ✅ |
+| `POSTGRES_USER` | PostgreSQLユーザー名 | - | ✅ |
+| `POSTGRES_PASSWORD` | PostgreSQLパスワード | - | ✅ |
+
+#### KeyCloak設定
+| 環境変数名 | 説明 | デフォルト値 | 必須 |
+|-----------|------|-------------|------|
+| `KEYCLOAK_SERVER_URL` | KeyCloakサーバーURL | `http://localhost:8080` | ✅ |
+| `KEYCLOAK_REALM` | KeyCloakレルム名 | `myrealm` | ✅ |
+| `KEYCLOAK_CLIENT_ID` | KeyCloakクライアントID | `django-client` | ✅ |
+| `KEYCLOAK_CLIENT_SECRET` | KeyCloakクライアントシークレット | - | ✅ |
+| `KEYCLOAK_ADMIN_USERNAME` | KeyCloak管理者ユーザー名 | `admin` | ✅ |
+| `KEYCLOAK_ADMIN_PASSWORD` | KeyCloak管理者パスワード | `admin` | ✅ |
+
+#### Google OAuth2設定（KeyCloak Identity Provider用）
+| 環境変数名 | 説明 | デフォルト値 | 必須 |
+|-----------|------|-------------|------|
+| `GOOGLE_OAUTH2_CLIENT_ID` | Google OAuth2クライアントID | - | ⚠️ |
+| `GOOGLE_OAUTH2_CLIENT_SECRET` | Google OAuth2クライアントシークレット | - | ⚠️ |
+
+⚠️ Googleソーシャルログインを使用する場合は必須
+
+#### AWS OIDC設定（オプション）
+| 環境変数名 | 説明 | デフォルト値 | 必須 |
+|-----------|------|-------------|------|
+| `AWS_OIDC_ISSUER_URL` | AWS OIDC発行者URL | - | ❌ |
+| `AWS_OIDC_CLIENT_ID` | AWS OIDCクライアントID | - | ❌ |
+| `AWS_OIDC_CLIENT_SECRET` | AWS OIDCクライアントシークレット | - | ❌ |
+
+### セットアップ手順
+
+#### 1. 環境変数ファイルの作成
+```sh
+# .env.exampleをコピーして.envrcを作成
+cp .env.example .envrc
+
+# 必要な値を設定
+vim .envrc
+
+# 環境変数を読み込む
+direnv allow
+```
+
+#### 2. Docker Composeでサービス起動
+```sh
+# KeyCloakとPostgreSQLを含む全サービス起動
+docker compose up -d
+
+# サービス状態確認
+docker compose ps
+```
+
+#### 3. KeyCloak初期設定
+```sh
+# KeyCloak設定コマンド実行
+docker compose run --rm web uv run python manage.py setup_keycloak
+
+# Google OAuth2認証情報を指定する場合
+docker compose run --rm web uv run python manage.py setup_keycloak \
+  --google-client-id YOUR_GOOGLE_CLIENT_ID \
+  --google-client-secret YOUR_GOOGLE_CLIENT_SECRET
+```
+
+#### 4. Django設定確認
+```sh
+# Django設定チェック
+docker compose run --rm web uv run python manage.py check
+
+# マイグレーション実行
+docker compose run --rm web uv run python manage.py migrate
+
+# 開発サーバー起動
+docker compose run --rm web uv run python manage.py runserver 0.0.0.0:8000
+```
+
+### アクセスURL
+
+- **Django アプリケーション**: http://localhost:8000
+- **KeyCloak管理コンソール**: http://localhost:8080/admin
+  - ユーザー名: `admin` (環境変数で変更可能)
+  - パスワード: `admin` (環境変数で変更可能)
+
+### Google OAuth2設定
+
+1. [Google Cloud Console](https://console.cloud.google.com/) でプロジェクト作成
+2. APIs & Services > Credentials で OAuth 2.0 Client ID を作成
+3. 承認済みリダイレクト URI に以下を追加:
+   ```
+   http://localhost:8080/realms/myrealm/broker/google/endpoint
+   ```
+4. クライアントIDとシークレットを環境変数に設定
+
+### AWS OIDC設定（オプション）
+
+1. AWS IAM Identity Center でアプリケーション作成
+2. OIDC設定を取得
+3. 環境変数に設定
+
+### トラブルシューティング
+
+#### KeyCloakに接続できない
+```sh
+# KeyCloakログ確認
+docker compose logs keycloak
+
+# KeyCloakサービス再起動
+docker compose restart keycloak
+```
+
+#### Django設定エラー
+```sh
+# Django設定チェック
+docker compose run --rm web uv run python manage.py check
+
+# 詳細なエラー情報
+docker compose run --rm web uv run python manage.py check --deploy
 ```
 
 #### 8.Additional Notes
