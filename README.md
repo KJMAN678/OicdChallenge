@@ -50,7 +50,7 @@ $ brew install direnv
 $ docker compose up -d
 
 # コンテナ作り直し
-$ ./remake-container.sh
+$ source remake_container.sh
 ```
 
 #### 5.SetUp Lint

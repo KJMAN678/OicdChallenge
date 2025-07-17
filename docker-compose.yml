@@ -44,6 +44,7 @@ services:
       KC_HOSTNAME_STRICT: false
       KC_HOSTNAME_STRICT_HTTPS: false
       KC_HTTP_ENABLED: true
+      KC_REALM_SSL_REQUIRED: none
     ports:
       - "8080:8080"
     command: start-dev
