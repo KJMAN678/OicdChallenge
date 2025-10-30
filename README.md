@@ -13,23 +13,6 @@ $ cp .envrc.example .envrc
 
 # .envrc を適宜更新
 
-# OIDC認証用環境変数
-export KEYCLOAK_SERVER_URL=http://localhost:8080
-export KEYCLOAK_REALM=myrealm
-export KEYCLOAK_CLIENT_ID=django-client
-export KEYCLOAK_CLIENT_SECRET=your-keycloak-client-secret
-export KEYCLOAK_ADMIN_USERNAME=admin
-export KEYCLOAK_ADMIN_PASSWORD=admin
-
-# Google OAuth2設定（KeyCloak Identity Provider用）
-export GOOGLE_OAUTH2_CLIENT_ID=your-google-client-id
-export GOOGLE_OAUTH2_CLIENT_SECRET=your-google-client-secret
-
-# AWS OIDC設定（オプション）
-export AWS_OIDC_ISSUER_URL=https://your-aws-oidc-issuer-url
-export AWS_OIDC_CLIENT_ID=your-aws-oidc-client-id
-export AWS_OIDC_CLIENT_SECRET=your-aws-oidc-client-secret
-
 # 環境変数を読み込む
 $ direnv allow
 ```
