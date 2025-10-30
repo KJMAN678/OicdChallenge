@@ -9,16 +9,9 @@
 ```sh
 # 環境変数用のファイル作成
 $ touch .envrc
+$ cp .envrc.example .envrc
 
-# .envrc に下記を入力. xxx は適宜更新
-
-export DJANGO_SUPERUSER_USERNAME=xxx
-export DJANGO_SUPERUSER_EMAIL=xxx@xxx.com
-export DJANGO_SUPERUSER_PASSWORD=xxx
-export DJANGO_SECRET_KEY=hogehoge
-export POSTGRES_DB=hogehoge
-export POSTGRES_USER=hogehoge
-export POSTGRES_PASSWORD=hogehoge
+# .envrc を適宜更新
 
 # OIDC認証用環境変数
 export KEYCLOAK_SERVER_URL=http://localhost:8080
