@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "allauth.account",
     "allauth.socialaccount",
     "allauth.socialaccount.providers.openid_connect",
+    "api",
 ]
 
 MIDDLEWARE = [
@@ -68,8 +69,8 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                "allauth.account.context_processors.account",
-                "allauth.socialaccount.context_processors.socialaccount",
+                # "allauth.account.context_processors.account",
+                # "allauth.socialaccount.context_processors.socialaccount",
             ],
         },
     },
@@ -175,15 +176,17 @@ SOCIALACCOUNT_PROVIDERS = {
 }
 
 if AWS_OIDC_ISSUER_URL and AWS_OIDC_CLIENT_ID and AWS_OIDC_CLIENT_SECRET:
-    SOCIALACCOUNT_PROVIDERS["openid_connect"]["APPS"].append({
-        "provider_id": "aws-oidc",
-        "name": "AWS OIDC",
-        "client_id": AWS_OIDC_CLIENT_ID,
-        "secret": AWS_OIDC_CLIENT_SECRET,
-        "settings": {
-            "server_url": AWS_OIDC_ISSUER_URL,
-        },
-    })
+    SOCIALACCOUNT_PROVIDERS["openid_connect"]["APPS"].append(
+        {
+            "provider_id": "aws-oidc",
+            "name": "AWS OIDC",
+            "client_id": AWS_OIDC_CLIENT_ID,
+            "secret": AWS_OIDC_CLIENT_SECRET,
+            "settings": {
+                "server_url": AWS_OIDC_ISSUER_URL,
+            },
+        }
+    )
 
 KEYCLOAK_ADMIN_USERNAME = os.environ.get("KEYCLOAK_ADMIN_USERNAME", "admin")
 KEYCLOAK_ADMIN_PASSWORD = os.environ.get("KEYCLOAK_ADMIN_PASSWORD", "admin")

@@ -102,19 +102,19 @@ direnv allow
 #### 2. Docker Composeでサービス起動
 ```sh
 # KeyCloakとPostgreSQLを含む全サービス起動
-docker compose up -d
+$ docker compose up -d
 
 # サービス状態確認
-docker compose ps
+$ docker compose ps
 ```
 
 #### 3. KeyCloak初期設定
 ```sh
 # KeyCloak設定コマンド実行
-docker compose run --rm web uv run python manage.py setup_keycloak
+$ docker compose run --rm web uv run manage.py setup_keycloak
 
 # Google OAuth2認証情報を指定する場合
-docker compose run --rm web uv run python manage.py setup_keycloak \
+$ docker compose run --rm web uv run python manage.py setup_keycloak \
   --google-client-id YOUR_GOOGLE_CLIENT_ID \
   --google-client-secret YOUR_GOOGLE_CLIENT_SECRET
 ```
@@ -122,13 +122,13 @@ docker compose run --rm web uv run python manage.py setup_keycloak \
 #### 4. Django設定確認
 ```sh
 # Django設定チェック
-docker compose run --rm web uv run python manage.py check
+$ docker compose run --rm web uv run python manage.py check
 
 # マイグレーション実行
-docker compose run --rm web uv run python manage.py migrate
+$ docker compose run --rm web uv run python manage.py migrate
 
 # 開発サーバー起動
-docker compose run --rm web uv run python manage.py runserver 0.0.0.0:8000
+$ docker compose run --rm web uv run python manage.py runserver 0.0.0.0:8000
 ```
 
 ### アクセスURL
@@ -159,19 +159,19 @@ docker compose run --rm web uv run python manage.py runserver 0.0.0.0:8000
 #### KeyCloakに接続できない
 ```sh
 # KeyCloakログ確認
-docker compose logs keycloak
+$ docker compose logs keycloak
 
 # KeyCloakサービス再起動
-docker compose restart keycloak
+$ docker compose restart keycloak
 ```
 
 #### Django設定エラー
 ```sh
 # Django設定チェック
-docker compose run --rm web uv run python manage.py check
+$ docker compose run --rm web uv run python manage.py check
 
 # 詳細なエラー情報
-docker compose run --rm web uv run python manage.py check --deploy
+$ docker compose run --rm web uv run python manage.py check --deploy
 ```
 
 #### 8.Additional Notes
