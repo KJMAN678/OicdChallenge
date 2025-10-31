@@ -1,0 +1,236 @@
+"""
+Django management command to set up KeyCloak realm, client, and Google Identity Provider.
+"""
+
+from django.core.management.base import BaseCommand
+from django.conf import settings
+import os
+import time
+from keycloak_admin import keycloak_admin
+
+
+class Command(BaseCommand):
+    help = 'Set up KeyCloak realm, client, and Google Identity Provider'
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--google-client-id',
+            type=str,
+            help='Google OAuth2 Client ID for Identity Provider setup',
+        )
+        parser.add_argument(
+            '--google-client-secret',
+            type=str,
+            help='Google OAuth2 Client Secret for Identity Provider setup',
+        )
+        parser.add_argument(
+            '--skip-google',
+            action='store_true',
+            help='Skip Google Identity Provider setup',
+        )
+
+    def handle(self, *args, **options):
+        self.stdout.write(self.style.SUCCESS('Starting KeyCloak setup...'))
+        
+        max_retries = 30
+        for i in range(max_retries):
+            if keycloak_admin.is_connected():
+                break
+            time.sleep(2)
+            self.stdout.write(f'Retry {i+1}/{max_retries}...')
+        
+        if not keycloak_admin.is_connected():
+            self.stdout.write(
+                self.style.ERROR('Failed to connect to KeyCloak. Please check your configuration.')
+            )
+            return
+        
+        self.stdout.write(self.style.SUCCESS('Connected to KeyCloak successfully!'))
+        
+        realm_info = keycloak_admin.get_realm_info()
+        if realm_info:
+            self.stdout.write(f'Realm "{settings.KEYCLOAK_REALM}" already exists.')
+        else:
+            self.stdout.write(f'Creating realm "{settings.KEYCLOAK_REALM}"...')
+            success = keycloak_admin.create_realm(
+                realm_name=settings.KEYCLOAK_REALM,
+                frontend_url="http://localhost:8080"
+            )
+            if success:
+                self.stdout.write(
+                    self.style.SUCCESS(f'Realm "{settings.KEYCLOAK_REALM}" created successfully!')
+                )
+            else:
+                self.stdout.write(
+                    self.style.ERROR(f'Failed to create realm "{settings.KEYCLOAK_REALM}".')
+                )
+                return
+        
+        self.setup_django_client()
+        
+        if not options['skip_google']:
+            google_client_id = options.get('google_client_id') or os.environ.get('GOOGLE_OAUTH2_CLIENT_ID')
+            google_client_secret = options.get('google_client_secret') or os.environ.get('GOOGLE_OAUTH2_CLIENT_SECRET')
+            
+            if google_client_id and google_client_secret:
+                self.setup_google_identity_provider(google_client_id, google_client_secret)
+            else:
+                self.stdout.write(
+                    self.style.WARNING(
+                        'Google OAuth2 credentials not provided. Skipping Google Identity Provider setup.'
+                    )
+                )
+        
+        self.stdout.write(self.style.SUCCESS('KeyCloak setup completed!'))
+        self.print_next_steps()
+
+    def setup_django_client(self):
+        self.stdout.write('Setting up Django OIDC client...')
+        
+        from keycloak import KeycloakAdmin, KeycloakOpenIDConnection
+        
+        realm_admin = KeycloakAdmin(
+            connection=KeycloakOpenIDConnection(
+                server_url=settings.KEYCLOAK_SERVER_URL,
+                username=settings.KEYCLOAK_ADMIN_USERNAME,
+                password=settings.KEYCLOAK_ADMIN_PASSWORD,
+                realm_name="master",
+                verify=False,
+            ),
+            realm_name=settings.KEYCLOAK_REALM
+        )
+        
+        self.stdout.write(f'Using realm: {settings.KEYCLOAK_REALM}')
+        
+        client_id = settings.KEYCLOAK_CLIENT_ID
+        
+        try:
+            all_clients = realm_admin.get_clients()
+            hyphen_clients = [c for c in all_clients if c.get('clientId') == 'django-client']
+            if hyphen_clients:
+                hyphen_uuid = hyphen_clients[0].get('id')
+                realm_admin.delete_client(hyphen_uuid)
+                self.stdout.write(f'Deleted old client "django-client" (UUID: {hyphen_uuid})')
+        except Exception as e:
+            self.stdout.write(f'Note: Could not delete django-client: {e}')
+        
+        all_clients = realm_admin.get_clients()
+        existing_clients = [c for c in all_clients if c.get('clientId') == client_id]
+        
+        if existing_clients:
+            existing_uuid = existing_clients[0].get('id')
+            self.stdout.write(f'Client "{client_id}" already exists in realm "{settings.KEYCLOAK_REALM}" (UUID: {existing_uuid}).')
+            return
+        
+        self.stdout.write(f'Creating client "{client_id}" in realm "{settings.KEYCLOAK_REALM}"...')
+        
+        client_data = {
+            "clientId": client_id,
+            "name": "Django OIDC Client",
+            "description": "Django application OIDC client",
+            "enabled": True,
+            "clientAuthenticatorType": "client-secret",
+            "secret": settings.KEYCLOAK_CLIENT_SECRET,
+            "redirectUris": [
+                "http://localhost:8000/accounts/oidc/keycloak/login/callback/*",
+                "http://127.0.0.1:8000/accounts/oidc/keycloak/login/callback/*",
+            ],
+            "webOrigins": [
+                "http://localhost:8000",
+                "http://127.0.0.1:8000",
+            ],
+            "protocol": "openid-connect",
+            "publicClient": False,
+            "standardFlowEnabled": True,
+            "directAccessGrantsEnabled": True,
+            "serviceAccountsEnabled": False,
+            "authorizationServicesEnabled": False,
+            "attributes": {
+                "pkce.code.challenge.method": "S256"
+            }
+        }
+        
+        try:
+            client_uuid = realm_admin.create_client(client_data)
+            
+            all_clients_after = realm_admin.get_clients()
+            created_clients = [c for c in all_clients_after if c.get('clientId') == client_id]
+            if created_clients:
+                created_uuid = created_clients[0].get('id')
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f'Django OIDC client "{client_id}" created successfully in realm "{settings.KEYCLOAK_REALM}"!\n'
+                        f'   UUID: {created_uuid}\n'
+                        f'   Enabled: {created_clients[0].get("enabled")}\n'
+                        f'   Protocol: {created_clients[0].get("protocol")}\n'
+                        f'   Standard Flow: {created_clients[0].get("standardFlowEnabled")}'
+                    )
+                )
+            else:
+                self.stdout.write(
+                    self.style.ERROR(f'Client creation returned UUID but verification failed.')
+                )
+        except Exception as e:
+            self.stdout.write(
+                self.style.ERROR(f'Error creating Django OIDC client: {e}')
+            )
+
+    def setup_google_identity_provider(self, google_client_id, google_client_secret):
+        self.stdout.write('Setting up Google Identity Provider...')
+        
+        existing_idps = keycloak_admin.get_identity_providers()
+        google_idp_exists = any(idp.get('alias') == 'google' for idp in existing_idps)
+        
+        if google_idp_exists:
+            self.stdout.write('Google Identity Provider already exists.')
+            return
+        
+        success = keycloak_admin.create_google_identity_provider(
+            google_client_id, google_client_secret
+        )
+        
+        if success:
+            self.stdout.write(
+                self.style.SUCCESS('Google Identity Provider created successfully!')
+            )
+            self.stdout.write(
+                'Note: You may need to configure additional mappers in the KeyCloak admin console.'
+            )
+        else:
+            self.stdout.write(
+                self.style.ERROR('Failed to create Google Identity Provider.')
+            )
+
+    def print_next_steps(self):
+        self.stdout.write('\n' + '='*60)
+        self.stdout.write(self.style.SUCCESS('NEXT STEPS:'))
+        self.stdout.write('='*60)
+        
+        self.stdout.write('\n1. KeyCloak Admin Console:')
+        self.stdout.write(f'   URL: {settings.KEYCLOAK_SERVER_URL}/admin/')
+        self.stdout.write(f'   Username: {settings.KEYCLOAK_ADMIN_USERNAME}')
+        self.stdout.write(f'   Password: {settings.KEYCLOAK_ADMIN_PASSWORD}')
+        
+        self.stdout.write('\n2. Create Realm (if not exists):')
+        self.stdout.write(f'   - Create realm: "{settings.KEYCLOAK_REALM}"')
+        self.stdout.write('   - Enable user registration if needed')
+        
+        self.stdout.write('\n3. Google OAuth2 Setup:')
+        self.stdout.write('   - Go to Google Cloud Console')
+        self.stdout.write('   - Create OAuth 2.0 Client ID')
+        self.stdout.write('   - Add authorized redirect URI:')
+        self.stdout.write(f'     {settings.KEYCLOAK_SERVER_URL}/realms/{settings.KEYCLOAK_REALM}/broker/google/endpoint')
+        
+        self.stdout.write('\n4. AWS OIDC Setup (Optional):')
+        self.stdout.write('   - Configure AWS IAM Identity Center')
+        self.stdout.write('   - Set environment variables:')
+        self.stdout.write('     - AWS_OIDC_ISSUER_URL')
+        self.stdout.write('     - AWS_OIDC_CLIENT_ID')
+        self.stdout.write('     - AWS_OIDC_CLIENT_SECRET')
+        
+        self.stdout.write('\n5. Test Authentication:')
+        self.stdout.write('   - Start Django server: python manage.py runserver')
+        self.stdout.write('   - Visit: http://localhost:8000')
+        self.stdout.write('   - Test login with configured providers')
+        
+        self.stdout.write('\n' + '='*60)

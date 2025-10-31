@@ -38,6 +38,12 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sites",
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.openid_connect",
+    "api",
 ]
 
 MIDDLEWARE = [
@@ -46,6 +52,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -55,13 +62,15 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                # "allauth.account.context_processors.account",
+                # "allauth.socialaccount.context_processors.socialaccount",
             ],
         },
     },
@@ -125,3 +134,69 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+SITE_ID = 1
+
+AUTHENTICATION_BACKENDS = [
+    # 通常のDjangoユーザー認証
+    # "django.contrib.auth.backends.ModelBackend",
+    # Keycloak認証
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
+
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+ACCOUNT_AUTHENTICATION_METHOD = "email"
+ACCOUNT_USERNAME_REQUIRED = False
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "/"
+
+KEYCLOAK_SERVER_URL = os.environ.get("KEYCLOAK_SERVER_URL", "http://keycloak:8080")
+KEYCLOAK_REALM = os.environ.get("KEYCLOAK_REALM", "myrealm")
+KEYCLOAK_CLIENT_ID = os.environ.get("KEYCLOAK_CLIENT_ID", "django-client")
+KEYCLOAK_CLIENT_SECRET = os.environ.get("KEYCLOAK_CLIENT_SECRET")
+
+AWS_OIDC_ISSUER_URL = os.environ.get("AWS_OIDC_ISSUER_URL")
+AWS_OIDC_CLIENT_ID = os.environ.get("AWS_OIDC_CLIENT_ID")
+AWS_OIDC_CLIENT_SECRET = os.environ.get("AWS_OIDC_CLIENT_SECRET")
+
+SOCIALACCOUNT_PROVIDERS = {
+    "openid_connect": {
+        "OAUTH_PKCE_ENABLED": True,
+        "APPS": [
+            {
+                "provider_id": "keycloak",
+                "name": "KeyCloak",
+                "client_id": KEYCLOAK_CLIENT_ID,
+                "secret": KEYCLOAK_CLIENT_SECRET,
+                "settings": {
+                    # 発行者(ディスカバリ)は内部到達性のあるURL
+                    "server_url": f"http://keycloak:8080/realms/{KEYCLOAK_REALM}",
+                    # 必要なエンドポイントを明示的に上書き（直下キーで指定）
+                    # ブラウザで到達できる外向けURL
+                    "authorization_endpoint": f"http://localhost:8080/realms/{KEYCLOAK_REALM}/protocol/openid-connect/auth",
+                    # サーバー間は内部名で疎通
+                    "token_endpoint": f"{KEYCLOAK_SERVER_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/token",
+                    "userinfo_endpoint": f"{KEYCLOAK_SERVER_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/userinfo",
+                    "jwks_uri": f"{KEYCLOAK_SERVER_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/certs",
+                },
+            },
+        ],
+    },
+}
+
+if AWS_OIDC_ISSUER_URL and AWS_OIDC_CLIENT_ID and AWS_OIDC_CLIENT_SECRET:
+    SOCIALACCOUNT_PROVIDERS["openid_connect"]["APPS"].append(
+        {
+            "provider_id": "aws-oidc",
+            "name": "AWS OIDC",
+            "client_id": AWS_OIDC_CLIENT_ID,
+            "secret": AWS_OIDC_CLIENT_SECRET,
+            "settings": {
+                "server_url": AWS_OIDC_ISSUER_URL,
+            },
+        }
+    )
+
+KEYCLOAK_ADMIN_USERNAME = os.environ.get("KEYCLOAK_ADMIN_USERNAME", "admin")
+KEYCLOAK_ADMIN_PASSWORD = os.environ.get("KEYCLOAK_ADMIN_PASSWORD", "admin")

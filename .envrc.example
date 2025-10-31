@@ -1,7 +1,30 @@
-export DJANGO_SUPERUSER_USERNAME=xxx
-export DJANGO_SUPERUSER_EMAIL=xxx@xxx.com
-export DJANGO_SUPERUSER_PASSWORD=xxx
-export DJANGO_SECRET_KEY=hogehoge
-export POSTGRES_DB=hogehoge
-export POSTGRES_USER=hogehoge
-export POSTGRES_PASSWORD=hogehoge
+# Django Configuration
+export DJANGO_SECRET_KEY=your-secret-key-here
+export DJANGO_SUPERUSER_USERNAME
+export DJANGO_SUPERUSER_EMAIL
+export DJANGO_SUPERUSER_PASSWORD
+export POSTGRES_DB=django_app
+export POSTGRES_USER=django
+export POSTGRES_PASSWORD=django
+
+# KeyCloak Configuration
+export KEYCLOAK_SERVER_URL=http://localhost:8080
+export KEYCLOAK_REALM=myrealm
+export KEYCLOAK_CLIENT_ID=django-client
+export KEYCLOAK_CLIENT_SECRET=your-keycloak-client-secret
+
+# KeyCloak Admin Configuration
+export KEYCLOAK_ADMIN_USERNAME=admin
+export KEYCLOAK_ADMIN_PASSWORD=admin
+
+# Google OAuth2 Configuration (for KeyCloak Identity Provider)
+export GOOGLE_OAUTH2_CLIENT_ID=your-google-client-id
+export GOOGLE_OAUTH2_CLIENT_SECRET=your-google-client-secret
+
+# export AWS OIDC Configuration (Optional)
+# export AWS_OIDC_ISSUER_URL=https://your-aws-oidc-issuer-url
+# export AWS_OIDC_CLIENT_ID=your-aws-oidc-client-id
+# export AWS_OIDC_CLIENT_SECRET=your-aws-oidc-client-secret
+
+# Development Settings
+export DEBUG=True
