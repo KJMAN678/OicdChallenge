@@ -1,6 +1,7 @@
 from django.http import HttpResponseForbidden
 from django.shortcuts import redirect
 from django.urls import reverse
+from allauth.socialaccount.providers import registry
 
 
 def admin_login_redirect(request):
@@ -13,7 +14,8 @@ def admin_login_redirect(request):
     # 次のURLを取得（デフォルトは管理画面トップ）
     next_url = request.GET.get("next", reverse("admin:index"))
 
-    # KeyCloakのOIDCログインにリダイレクト
-    return redirect(
-        f"/accounts/openid_connect/login/?process=login&openid_connect=keycloak&next={next_url}"
+    provider = registry.by_id("openid_connect", request=request)
+    login_url = provider.get_login_url(
+        request, process="login", next=next_url, **{"openid_connect": "keycloak"}
     )
+    return redirect(login_url)
