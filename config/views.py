@@ -20,10 +20,6 @@ def admin_login_redirect(request):
     ):
         next_url = reverse("admin:index")
 
-    try:
-        base = reverse("openid_connect_login")
-    except Exception:
-        base = "/accounts/openid_connect/login/"
-
-    qs = urlencode({"process": "login", "app": "keycloak", "next": next_url})
+    base = "/accounts/oidc/keycloak/login/"
+    qs = urlencode({"process": "login", "next": next_url})
     return redirect(f"{base}?{qs}")
