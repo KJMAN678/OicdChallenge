@@ -87,12 +87,42 @@ class Command(BaseCommand):
     def setup_django_client(self):
         self.stdout.write('Setting up Django OIDC client...')
         
-        client_id = settings.KEYCLOAK_CLIENT_ID
-        existing_client = keycloak_admin.get_client_by_id(client_id)
+        from keycloak import KeycloakAdmin, KeycloakOpenIDConnection
         
-        if existing_client:
-            self.stdout.write(f'Client "{client_id}" already exists.')
+        realm_admin = KeycloakAdmin(
+            connection=KeycloakOpenIDConnection(
+                server_url=settings.KEYCLOAK_SERVER_URL,
+                username=settings.KEYCLOAK_ADMIN_USERNAME,
+                password=settings.KEYCLOAK_ADMIN_PASSWORD,
+                realm_name="master",
+                verify=False,
+            ),
+            realm_name=settings.KEYCLOAK_REALM
+        )
+        
+        self.stdout.write(f'Using realm: {settings.KEYCLOAK_REALM}')
+        
+        client_id = settings.KEYCLOAK_CLIENT_ID
+        
+        try:
+            all_clients = realm_admin.get_clients()
+            hyphen_clients = [c for c in all_clients if c.get('clientId') == 'django-client']
+            if hyphen_clients:
+                hyphen_uuid = hyphen_clients[0].get('id')
+                realm_admin.delete_client(hyphen_uuid)
+                self.stdout.write(f'Deleted old client "django-client" (UUID: {hyphen_uuid})')
+        except Exception as e:
+            self.stdout.write(f'Note: Could not delete django-client: {e}')
+        
+        all_clients = realm_admin.get_clients()
+        existing_clients = [c for c in all_clients if c.get('clientId') == client_id]
+        
+        if existing_clients:
+            existing_uuid = existing_clients[0].get('id')
+            self.stdout.write(f'Client "{client_id}" already exists in realm "{settings.KEYCLOAK_REALM}" (UUID: {existing_uuid}).')
             return
+        
+        self.stdout.write(f'Creating client "{client_id}" in realm "{settings.KEYCLOAK_REALM}"...')
         
         client_data = {
             "clientId": client_id,
@@ -115,17 +145,30 @@ class Command(BaseCommand):
             "directAccessGrantsEnabled": True,
             "serviceAccountsEnabled": False,
             "authorizationServicesEnabled": False,
+            "attributes": {
+                "pkce.code.challenge.method": "S256"
+            }
         }
         
         try:
-            client_uuid = keycloak_admin.create_client(client_data)
-            if client_uuid:
+            client_uuid = realm_admin.create_client(client_data)
+            
+            all_clients_after = realm_admin.get_clients()
+            created_clients = [c for c in all_clients_after if c.get('clientId') == client_id]
+            if created_clients:
+                created_uuid = created_clients[0].get('id')
                 self.stdout.write(
-                    self.style.SUCCESS(f'Django OIDC client "{client_id}" created successfully!')
+                    self.style.SUCCESS(
+                        f'Django OIDC client "{client_id}" created successfully in realm "{settings.KEYCLOAK_REALM}"!\n'
+                        f'   UUID: {created_uuid}\n'
+                        f'   Enabled: {created_clients[0].get("enabled")}\n'
+                        f'   Protocol: {created_clients[0].get("protocol")}\n'
+                        f'   Standard Flow: {created_clients[0].get("standardFlowEnabled")}'
+                    )
                 )
             else:
                 self.stdout.write(
-                    self.style.ERROR(f'Failed to create Django OIDC client "{client_id}".')
+                    self.style.ERROR(f'Client creation returned UUID but verification failed.')
                 )
         except Exception as e:
             self.stdout.write(
