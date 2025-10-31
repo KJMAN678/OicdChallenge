@@ -9,6 +9,7 @@ dependencies = [
     "psycopg2-binary==2.9.10",
     "django-allauth==65.12.1",
     "python-keycloak==5.8.1",
+    "jwt==1.4.0",
 ]
 
 [tool.uv]

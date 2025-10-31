@@ -170,7 +170,8 @@ SOCIALACCOUNT_PROVIDERS = {
                 "client_id": KEYCLOAK_CLIENT_ID,
                 "secret": KEYCLOAK_CLIENT_SECRET,
                 "settings": {
-                    "server_url": f"{KEYCLOAK_SERVER_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect",
+                    # "server_url": f"{KEYCLOAK_SERVER_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect",
+                    "server_url": f"{KEYCLOAK_SERVER_URL}/realms/{KEYCLOAK_REALM}/",  # .well-known/openid-configuration
                 },
             },
         ],
