@@ -123,19 +123,14 @@ $ docker compose run --rm web uv run python manage.py setup_keycloak \
 3. Capability config
 - Client authentication: ON に設定（これでConfidentialクライアントになります）
 - Authorization: OFF のまま
-- Standard flow: ON に設定（チェックを入れる）
-- Direct access grants: ON に設定（チェックを入れる）
-- 「Next」をクリック
 
 4. Login settings
 - Valid redirect URIs: 以下の2つを追加
-http://localhost:8000/accounts/openid_connect/keycloak/login/callback/
-http://127.0.0.1:8000/accounts/openid_connect/keycloak/login/callback/
+http://localhost:8000/*
 
 - Web origins: 以下の2つを追加
 
 http://localhost:8000
-http://127.0.0.1:8000
 
 - 「Save」をクリック
 
