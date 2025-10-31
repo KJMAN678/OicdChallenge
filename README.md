@@ -85,29 +85,6 @@ $ http://localhost:8000/ がバックエンドのURL
 | `AWS_OIDC_CLIENT_ID` | AWS OIDCクライアントID | - | ❌ |
 | `AWS_OIDC_CLIENT_SECRET` | AWS OIDCクライアントシークレット | - | ❌ |
 
-### セットアップ手順
-
-#### 1. 環境変数ファイルの作成
-```sh
-# .env.exampleをコピーして.envrcを作成
-cp .env.example .envrc
-
-# 必要な値を設定
-vim .envrc
-
-# 環境変数を読み込む
-direnv allow
-```
-
-#### 2. Docker Composeでサービス起動
-```sh
-# KeyCloakとPostgreSQLを含む全サービス起動
-$ docker compose up -d
-
-# サービス状態確認
-$ docker compose ps
-```
-
 #### 3. KeyCloak初期設定
 ```sh
 # KeyCloak設定コマンド実行
@@ -115,20 +92,8 @@ $ docker compose run --rm web uv run manage.py setup_keycloak
 
 # Google OAuth2認証情報を指定する場合
 $ docker compose run --rm web uv run python manage.py setup_keycloak \
-  --google-client-id YOUR_GOOGLE_CLIENT_ID \
-  --google-client-secret YOUR_GOOGLE_CLIENT_SECRET
-```
-
-#### 4. Django設定確認
-```sh
-# Django設定チェック
-$ docker compose run --rm web uv run python manage.py check
-
-# マイグレーション実行
-$ docker compose run --rm web uv run python manage.py migrate
-
-# 開発サーバー起動
-$ docker compose run --rm web uv run python manage.py runserver 0.0.0.0:8000
+  --google-client-id GOOGLE_OAUTH2_CLIENT_ID \
+  --google-client-secret GOOGLE_OAUTH2_CLIENT_SECRET
 ```
 
 ### アクセスURL
@@ -174,22 +139,9 @@ $ docker compose run --rm web uv run python manage.py check
 $ docker compose run --rm web uv run python manage.py check --deploy
 ```
 
-#### 8.Additional Notes
+#### Additional Notes
 - 必ず日本語で回答してください
 - Python, Django を利用する
 - データベースは Postgres
 - テストは pytest を利用する
 を入力
-
-### OPENAI-API で PR-Review
-- [Qodo Merge](https://qodo-merge-docs.qodo.ai/installation/github/)
-  - GPT-4.1利用
-  - 日本語の回答をするようプロンプト設定
-- GitHub の Repository >> Settings >> Secretes and variables >> Actions の Repository secrets の New repository secret を登録
-  - OPENAI_KEY という名称で OPENAI API keys の SECRET KEY を登録
-    - [OPENAI API keys](https://platform.openai.com/settings/organization/api-keys) 
-```sh
---- .github/
-           |- workflows/
-                        |-- pr_agent.yml
-```

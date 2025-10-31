@@ -138,7 +138,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 SITE_ID = 1
 
 AUTHENTICATION_BACKENDS = [
-    "django.contrib.auth.backends.ModelBackend",
+    # 通常のDjangoユーザー認証
+    # "django.contrib.auth.backends.ModelBackend",
+    # Keycloak認証
     "allauth.account.auth_backends.AuthenticationBackend",
 ]
 
