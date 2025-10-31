@@ -12,12 +12,13 @@ def admin_login_redirect(request):
 
     next_url = request.GET.get("next", reverse("admin:index"))
 
-    provider_cls = providers.registry.get_class("openid_connect")
-    if provider_cls is None:
-        return HttpResponseForbidden("OpenID Connect provider is not configured")
+    oidc_provider = next(
+        (p for p in providers.registry.get_list() if p.id == "openid_connect"), None
+    )
+    if not oidc_provider:
+        return HttpResponseForbidden("OpenID Connect provider is not available")
 
-    provider = provider_cls(request)
-    login_url = provider.get_login_url(
-        request, process="login", next=next_url, **{"openid_connect": "keycloak"}
+    login_url = oidc_provider.get_login_url(
+        request, process="login", next=next_url, app="keycloak"
     )
     return redirect(login_url)
