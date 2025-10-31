@@ -162,6 +162,48 @@ class KeyCloakAdminClient:
             print(f"Failed to get realm info: {e}")
             return None
 
+    def create_realm(self, realm_name: str, frontend_url: str = None) -> bool:
+        """Create a new realm with optional frontend URL configuration."""
+        if not self.is_connected():
+            return False
+
+        try:
+            master_admin = KeycloakAdmin(
+                connection=KeycloakOpenIDConnection(
+                    server_url=self.server_url,
+                    username=self.admin_username,
+                    password=self.admin_password,
+                    realm_name="master",
+                    verify=False,
+                )
+            )
+            
+            realm_data = {
+                "realm": realm_name,
+                "enabled": True,
+                "displayName": realm_name,
+                "registrationAllowed": True,
+                "loginWithEmailAllowed": True,
+                "duplicateEmailsAllowed": False,
+                "resetPasswordAllowed": True,
+                "editUsernameAllowed": False,
+                "bruteForceProtected": True,
+            }
+            
+            if frontend_url:
+                realm_data["attributes"] = {
+                    "frontendUrl": frontend_url
+                }
+            
+            master_admin.create_realm(payload=realm_data)
+            
+            self._connect()
+            
+            return True
+        except Exception as e:
+            print(f"Failed to create realm: {e}")
+            return False
+
     def update_realm_settings(self, settings_data: Dict) -> bool:
         """Update realm settings."""
         if not self.is_connected():

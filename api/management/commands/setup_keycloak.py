@@ -52,11 +52,19 @@ class Command(BaseCommand):
             self.stdout.write(f'Realm "{settings.KEYCLOAK_REALM}" already exists.')
         else:
             self.stdout.write(f'Creating realm "{settings.KEYCLOAK_REALM}"...')
-            self.stdout.write(
-                self.style.WARNING(
-                    'Realm creation requires manual setup in KeyCloak admin console.'
-                )
+            success = keycloak_admin.create_realm(
+                realm_name=settings.KEYCLOAK_REALM,
+                frontend_url="http://localhost:8080"
             )
+            if success:
+                self.stdout.write(
+                    self.style.SUCCESS(f'Realm "{settings.KEYCLOAK_REALM}" created successfully!')
+                )
+            else:
+                self.stdout.write(
+                    self.style.ERROR(f'Failed to create realm "{settings.KEYCLOAK_REALM}".')
+                )
+                return
         
         self.setup_django_client()
         
@@ -94,8 +102,8 @@ class Command(BaseCommand):
             "clientAuthenticatorType": "client-secret",
             "secret": settings.KEYCLOAK_CLIENT_SECRET,
             "redirectUris": [
-                "http://localhost:8000/accounts/openid_connect/keycloak/login/callback/",
-                "http://127.0.0.1:8000/accounts/openid_connect/keycloak/login/callback/",
+                "http://localhost:8000/accounts/oidc/keycloak/login/callback/*",
+                "http://127.0.0.1:8000/accounts/oidc/keycloak/login/callback/*",
             ],
             "webOrigins": [
                 "http://localhost:8000",
