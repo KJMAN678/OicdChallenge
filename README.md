@@ -28,6 +28,8 @@ $ docker compose up -d
 # コンテナ作り直し
 $ source remake_container.sh
 ```
+- **Django アプリケーション**: http://localhost:8000
+- **KeyCloak管理コンソール**: http://localhost:8080/admin
 
 #### 5.SetUp Lint
 ```sh
