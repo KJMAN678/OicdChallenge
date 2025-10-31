@@ -170,7 +170,15 @@ SOCIALACCOUNT_PROVIDERS = {
                 "client_id": KEYCLOAK_CLIENT_ID,
                 "secret": KEYCLOAK_CLIENT_SECRET,
                 "settings": {
-                    "server_url": f"{KEYCLOAK_SERVER_URL}/realms/{KEYCLOAK_REALM}",
+                    # 発行者(ディスカバリ)は内部到達性のあるURL
+                    "server_url": f"http://keycloak:8080/realms/{KEYCLOAK_REALM}",
+                    # 必要なエンドポイントを明示的に上書き（直下キーで指定）
+                    # ブラウザで到達できる外向けURL
+                    "authorization_endpoint": f"http://localhost:8080/realms/{KEYCLOAK_REALM}/protocol/openid-connect/auth",
+                    # サーバー間は内部名で疎通
+                    "token_endpoint": f"{KEYCLOAK_SERVER_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/token",
+                    "userinfo_endpoint": f"{KEYCLOAK_SERVER_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/userinfo",
+                    "jwks_uri": f"{KEYCLOAK_SERVER_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/certs",
                 },
             },
         ],

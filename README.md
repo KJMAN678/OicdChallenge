@@ -28,6 +28,8 @@ $ docker compose up -d
 # コンテナ作り直し
 $ source remake_container.sh
 ```
+- **Django アプリケーション**: http://localhost:8000
+- **KeyCloak管理コンソール**: http://localhost:8080/admin
 
 #### 5.SetUp Lint
 ```sh
@@ -102,6 +104,47 @@ $ docker compose run --rm web uv run python manage.py setup_keycloak \
 - **KeyCloak管理コンソール**: http://localhost:8080/admin
   - ユーザー名: `admin` (環境変数で変更可能)
   - パスワード: `admin` (環境変数で変更可能)
+
+- http://localhost:8080/admin にアクセス
+- myrealm レルムを選択
+- Clients → django-client を選択
+- Credentials タブでClient Secretを確認
+- 環境変数に設定
+  - export KEYCLOAK_CLIENT_SECRET="<KeyCloakから取得したシークレット>"
+
+→ Realm settings（レルム設定）
+タブ
+→ General（一般）
+下部にある Frontend URL に以下を設定：
+http://localhost:8080
+
+#### django-clientの作成手順
+
+1. クライアントの作成開始
+- 「Create client」ボタンをクリック
+
+2. General Settings
+- Client type: OpenID Connect を選択
+- Client ID: django-client と入力（正確に）
+- 「Next」をクリック
+
+3. Capability config
+- Client authentication: ON に設定（これでConfidentialクライアントになります）
+- Authorization: OFF のまま
+
+4. Login settings
+- Valid redirect URIs: 以下の2つを追加
+http://localhost:8000/*
+
+- Web origins: 以下の2つを追加
+
+http://localhost:8000
+
+- 「Save」をクリック
+
+5. Client Secretの取得
+- 保存後、「Credentials」タブをクリック
+- Client secretの値をコピーして環境変数 export KEYCLOAK_CLIENT_ID=xxx を更新
 
 ### Google OAuth2設定
 
