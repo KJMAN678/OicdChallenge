@@ -41,19 +41,17 @@
         {% get_providers as socialaccount_providers %}
         {% for provider in socialaccount_providers %}
             {% if provider.id == "openid_connect" %}
-                {% for app in provider.get_app_configs %}
-                    {% if app.provider_id == "keycloak" %}
-                        <a href="{% provider_login_url provider.id app=app.provider_id %}" class="provider-btn keycloak">
-                            <strong>🔐 KeyCloak経由でログイン</strong>
-                            <small style="margin-left: 10px; color: #666;">（Google認証を含む）</small>
-                        </a>
-                    {% elif app.provider_id == "aws-oidc" %}
-                        <a href="{% provider_login_url provider.id app=app.provider_id %}" class="provider-btn aws">
-                            <strong>☁️ AWS OIDC でログイン</strong>
-                            <small style="margin-left: 10px; color: #666;">（AWS IAM Identity Center）</small>
-                        </a>
-                    {% endif %}
-                {% endfor %}
+                {% if provider.app.provider_id == "keycloak" %}
+                    <a href="{% provider_login_url provider.id app=provider.app.provider_id %}" class="provider-btn keycloak">
+                        <strong>🔐 KeyCloak経由でログイン</strong>
+                        <small style="margin-left: 10px; color: #666;">（Google認証を含む）</small>
+                    </a>
+                {% elif provider.app.provider_id == "aws-oidc" %}
+                    <a href="{% provider_login_url provider.id app=provider.app.provider_id %}" class="provider-btn aws">
+                        <strong>☁️ AWS OIDC でログイン</strong>
+                        <small style="margin-left: 10px; color: #666;">（AWS IAM Identity Center）</small>
+                    </a>
+                {% endif %}
             {% endif %}
         {% endfor %}
     </div>
