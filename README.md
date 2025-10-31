@@ -112,6 +112,12 @@ $ docker compose run --rm web uv run python manage.py setup_keycloak \
 - 環境変数に設定
   - export KEYCLOAK_CLIENT_SECRET="<KeyCloakから取得したシークレット>"
 
+→ Realm settings（レルム設定）
+タブ
+→ General（一般）
+下部にある Frontend URL に以下を設定：
+http://localhost:8080
+
 #### django-clientの作成手順
 
 1. クライアントの作成開始
