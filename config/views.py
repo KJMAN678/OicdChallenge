@@ -1,7 +1,9 @@
+from urllib.parse import urlencode
+
 from django.http import HttpResponseForbidden
 from django.shortcuts import redirect
 from django.urls import reverse
-from allauth.socialaccount import providers
+from django.utils.http import url_has_allowed_host_and_scheme
 
 
 def admin_login_redirect(request):
@@ -10,15 +12,18 @@ def admin_login_redirect(request):
             return redirect("admin:index")
         return HttpResponseForbidden("管理サイトへのアクセス権がありません")
 
-    next_url = request.GET.get("next", reverse("admin:index"))
+    next_url = request.GET.get("next") or reverse("admin:index")
+    if not url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        next_url = reverse("admin:index")
 
-    oidc_provider = next(
-        (p for p in providers.registry.get_list() if p.id == "openid_connect"), None
-    )
-    if not oidc_provider:
-        return HttpResponseForbidden("OpenID Connect provider is not available")
+    try:
+        base = reverse("openid_connect_login")
+    except Exception:
+        base = "/accounts/openid_connect/login/"
 
-    login_url = oidc_provider.get_login_url(
-        request, process="login", next=next_url, app="keycloak"
-    )
-    return redirect(login_url)
+    qs = urlencode({"process": "login", "app": "keycloak", "next": next_url})
+    return redirect(f"{base}?{qs}")
